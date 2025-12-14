@@ -1,0 +1,95 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "People API",
+    "version": "1.0.0",
+    "description": "API de pessoas"
+  },
+  "servers": [
+    {
+      "url": "https://api-viny.vercel.app/api",
+      "description": "Produção"
+    }
+  ],
+  "paths": {
+    "/people": {
+      "get": {
+        "summary": "Listar pessoas",
+        "responses": {
+          "200": {
+            "description": "Lista de pessoas"
+          }
+        }
+      }
+    },
+    "/people/{id}": {
+      "get": {
+        "summary": "Buscar pessoa por ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pessoa encontrada"
+          },
+          "404": {
+            "description": "Não encontrada"
+          }
+        }
+      },
+      "put": {
+        "summary": "Atualizar pessoa",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pessoa atualizada"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Excluir pessoa",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removida com sucesso"
+          }
+        }
+      }
+    }
+  }
+}
