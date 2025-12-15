@@ -71,32 +71,50 @@ export default function PeopleSearch({
         });
         setManagerMap(map);
 
-        // Extrair managers únicos combinando duas abordagens:
-        // 1. Todas as pessoas que aparecem como managerId de alguém
+        // Extrair managers únicos - pessoas que aparecem como managerId de alguém
         const managerIds = new Set<number>();
         data.forEach((person: any) => {
           if (person.managerId) {
-            managerIds.add(person.managerId);
+            managerIds.add(Number(person.managerId));
           }
         });
         
-        // 2. Todas as pessoas com cargo de gerente/diretor no título
-        const managerNames = new Set<string>();
+        // Criar lista de managers com ID e nome para evitar duplicatas
+        const managersList: Array<{id: number, name: string, displayName: string}> = [];
         
-        // Adicionar managers por ID
         Array.from(managerIds).forEach(id => {
-          const name = map[id];
-          if (name) managerNames.add(name);
+          const person = data.find((p: any) => Number(p.id) === id);
+          if (person) {
+            managersList.push({
+              id: id,
+              name: person.name,
+              displayName: `${person.name} (ID: ${id})`
+            });
+          }
         });
         
-        // Adicionar managers por cargo
+        // Adicionar pessoas com cargo de gerente/diretor que ainda não estão na lista
         data.forEach((person: any) => {
           if (/gerente|diretor|manager|gestor|supervisor|coordenador/i.test(person.jobTitle)) {
-            managerNames.add(person.name);
+            const alreadyExists = managersList.some(m => m.id === Number(person.id));
+            if (!alreadyExists) {
+              managersList.push({
+                id: Number(person.id),
+                name: person.name,
+                displayName: `${person.name} (ID: ${person.id})`
+              });
+            }
           }
         });
         
-        const uniqueManagers = Array.from(managerNames).sort();
+        // Ordenar por nome e depois por ID
+        managersList.sort((a, b) => {
+          const nameCompare = a.name.localeCompare(b.name);
+          return nameCompare !== 0 ? nameCompare : a.id - b.id;
+        });
+        
+        // Armazenar a lista completa de managers com IDs
+        const uniqueManagers = managersList.map(m => m.displayName);
         setManagers(uniqueManagers);
       } catch (err) {
         console.error('Erro ao buscar dados:', err);
@@ -151,14 +169,30 @@ export default function PeopleSearch({
 
     // Filtrar por manager (subordinados do manager selecionado)
     if (filters.manager) {
-      // Encontrar o ID do manager pelo nome
-      const managerEntry = allPeople.find((p: any) => p.name === filters.manager);
-      if (managerEntry) {
-        filtered = filtered.filter((person: any) => 
-          person.managerId === (managerEntry as any).id
-        );
+      // Extrair o ID do formato "Nome (ID: 123)"
+      const idMatch = filters.manager.match(/\(ID:\s*(\d+)\)/);
+      
+      if (idMatch) {
+        const managerId = Number(idMatch[1]);
+        
+        filtered = filtered.filter((person: any) => {
+          const personManagerId = Number(person.managerId);
+          return personManagerId === managerId;
+        });
       } else {
-        filtered = [];
+        // Fallback: buscar pelo nome (caso não tenha ID no formato esperado)
+        const managerEntry = allPeople.find((p: any) => p.name === filters.manager);
+        
+        if (managerEntry) {
+          const managerId = Number((managerEntry as any).id);
+          
+          filtered = filtered.filter((person: any) => {
+            const personManagerId = Number(person.managerId);
+            return personManagerId === managerId;
+          });
+        } else {
+          filtered = [];
+        }
       }
     }
 
