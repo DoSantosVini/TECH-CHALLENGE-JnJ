@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PeopleSearch, { Person } from './PeopleSearch';
 import ListagemTable from './ListagemTable';
 import BubbleOrganizationChart from './BubbleOrganizationChart';
@@ -16,6 +16,24 @@ export default function PeoplePage() {
   const [allPeople, setAllPeople] = useState<Person[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
+  // Recarregar todos os dados ao montar a página
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/people');
+        if (response.ok) {
+          const data: Person[] = await response.json();
+          setAllPeople(data);
+        } else {
+          console.error('Erro ao carregar dados:', response.statusText);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+      }
+    };
+    fetchData();
+  }, []);
+
   const handleSearchResults = (results: Person[]) => {
     setSearchResults(results);
     setHasSearched(true);
@@ -28,12 +46,12 @@ export default function PeoplePage() {
   const handleReset = async () => {
     setHasSearched(false);
     setSearchResults([]);
-    
+
     // Recarregar todos os dados
     try {
       const response = await fetch('/api/people');
       if (response.ok) {
-        const data = await response.json();
+        const data: Person[] = await response.json();
         setAllPeople(data);
       }
     } catch (err) {
@@ -56,15 +74,11 @@ export default function PeoplePage() {
           <div className="flex gap-3 justify-center sm:justify-start">
             <button
               onClick={() => setViewMode('list')}
-              className={`
-                flex items-center gap-2 px-6 py-3 rounded-full font-medium
-                transition-all
-                ${
-                  viewMode === 'list'
-                    ? 'bg-[var(--jj-red)] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }
-              `}
+              className={`flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all ${
+                viewMode === 'list'
+                  ? 'bg-[var(--jj-red)] text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
               <span className="text-lg">👥</span>
               <span>Listagem</span>
@@ -72,15 +86,11 @@ export default function PeoplePage() {
 
             <button
               onClick={() => setViewMode('chart')}
-              className={`
-                flex items-center gap-2 px-6 py-3 rounded-full font-medium
-                transition-all
-                ${
-                  viewMode === 'chart'
-                    ? 'bg-[var(--jj-red)] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }
-              `}
+              className={`flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all ${
+                viewMode === 'chart'
+                  ? 'bg-[var(--jj-red)] text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
               <span className="text-lg">📊</span>
               <span>Organograma</span>
@@ -92,12 +102,7 @@ export default function PeoplePage() {
       {/* Conteúdo */}
       <div className="py-6">
         {viewMode === 'list' ? (
-          <ListagemTable
-            searchResults={searchResults}
-            hasSearched={hasSearched}
-            allPeople={allPeople}
-            loading={isLoading}
-          />
+          <ListagemTable />
         ) : (
           <BubbleOrganizationChart />
         )}

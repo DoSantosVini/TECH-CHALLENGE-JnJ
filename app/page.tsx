@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Statistics from './components/Statistics';
 import TabsNavigation, { TabType } from './components/TabsNavigation';
-import PeopleSearch, { FilteredStats } from './components/PeopleSearch';
+import PeopleSearch, { FilteredStats, Person as SearchPerson } from './components/PeopleSearch';
 import BubbleOrganizationChart from './components/BubbleOrganizationChart';
 import ListagemTable from './components/ListagemTable';
 import SearchResults from './components/SearchResults';
 
-interface Person {
+export interface Person {
   id: number;
   name: string;
   jobTitle: string;
@@ -29,6 +29,22 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('lista');
   const [filteredStats, setFilteredStats] = useState<FilteredStats | null>(null);
+
+  // Opcional: carregar dados iniciais
+  useEffect(() => {
+    const fetchAllPeople = async () => {
+      try {
+        const response = await fetch('/api/people');
+        if (response.ok) {
+          const data: Person[] = await response.json();
+          setAllPeople(data);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar dados iniciais:', err);
+      }
+    };
+    fetchAllPeople();
+  }, []);
 
   const handlePeopleSearchResults = (
     searchResults: Person[], 
@@ -94,9 +110,6 @@ export default function Home() {
 
       {activeTab === 'organograma' && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <h2 className="text-2xl font-semibold text-black mb-6">
-            Organograma
-          </h2>
           <BubbleOrganizationChart />
         </div>
       )}

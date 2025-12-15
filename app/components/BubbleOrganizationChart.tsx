@@ -180,7 +180,7 @@ export default function BubbleOrganizationChart() {
   };
 
   // Renderizar nó e seus filhos
-  const renderNode = (node: HierarchyNode, depth: number = 0): JSX.Element => {
+  const renderNode = (node: HierarchyNode, depth: number = 0) => {
     const isExpanded = expandedNodes.has(node.person.id);
     const hasChildren = node.children.length > 0;
     const color = LEVEL_COLORS[node.level as keyof typeof LEVEL_COLORS] || 'bg-gray-400 text-white';

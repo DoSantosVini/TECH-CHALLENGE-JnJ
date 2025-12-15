@@ -16,6 +16,10 @@ export interface Person {
   department: string;
   status: string;
   type: string;
+  location: string;
+  workEmail?: string;
+  hireDate?: string;
+  photoUrl?: string;
 }
 
 export interface FilteredStats {
