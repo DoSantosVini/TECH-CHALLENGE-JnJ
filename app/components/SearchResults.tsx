@@ -6,7 +6,7 @@ interface Person {
   jobTitle: string;
   department: string;
   status: string;
-  employeeType: string;
+  type: string;
 }
 
 interface Props {
@@ -64,6 +64,9 @@ export default function SearchResults({ results, managerMap, loading }: Props) {
                 Manager
               </th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                Tipo
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">
                 Status
               </th>
             </tr>
@@ -85,6 +88,9 @@ export default function SearchResults({ results, managerMap, loading }: Props) {
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600">
                   {(p as any).managerId ? managerMap[(p as any).managerId] || '-' : '-'}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {(p as any).type === 'Employee' ? 'Funcionário' : (p as any).type === 'Partner' ? 'Parceiro' : '-'}
                 </td>
                 <td className="px-6 py-4">
                   <span

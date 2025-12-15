@@ -15,7 +15,7 @@ export interface Person {
   jobTitle: string;
   department: string;
   status: string;
-  employeeType: string;
+  type: string;
 }
 
 interface Props {
@@ -198,16 +198,20 @@ export default function PeopleSearch({
 
     // Filtrar por tipo
     if (filters.tipo) {
-      filtered = filtered.filter((person: any) => 
-        person.employeeType === filters.tipo
-      );
+      filtered = filtered.filter((person: any) => {
+        const personType = String(person.type || '').trim();
+        const filterType = String(filters.tipo).trim();
+        return personType === filterType;
+      });
     }
 
     // Filtrar por status
     if (filters.status) {
-      filtered = filtered.filter((person: any) => 
-        person.status === filters.status
-      );
+      filtered = filtered.filter((person: any) => {
+        const personStatus = String(person.status || '').trim();
+        const filterStatus = String(filters.status).trim();
+        return personStatus === filterStatus;
+      });
     }
 
     onResults(filtered, managerMap);
