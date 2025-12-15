@@ -12,20 +12,40 @@ import { motion, AnimatePresence } from 'framer-motion';
 /* =========================
    TIPOS
 ========================= */
-type Status = 'active' | 'inactive';
+type Status = 'Active' | 'Inactive';
 
-type Person = {
-  id: string;
+interface Person {
+  id: number;
   name: string;
-  position: string;
-  management: string;
+  jobTitle: string;
+  department: string;
+  managerId: number | null;
   status: Status;
+}
+
+interface HierarchyNode {
+  person: Person;
+  level: number;
+  children: HierarchyNode[];
+}
+
+/* =========================
+   CONFIGURAÇÃO DE CORES POR NÍVEL
+========================= */
+const LEVEL_COLORS = {
+  1: 'bg-[#EB1700] text-white', // Organização - Vermelho J&J
+  2: 'bg-blue-700 text-white',   // Departamentos - Azul
+  3: 'bg-green-600 text-white',  // Gerentes - Verde
+  4: 'bg-purple-600 text-white', // Supervisores - Roxo
+  5: 'bg-gray-500 text-white',   // Colaboradores - Cinza
 };
 
-type Group = {
-  name: string;
-  manager?: Person;
-  members: Person[];
+const LEVEL_SIZES = {
+  1: 'lg' as const,
+  2: 'md' as const,
+  3: 'sm' as const,
+  4: 'sm' as const,
+  5: 'sm' as const,
 };
 
 /* =========================
@@ -36,11 +56,13 @@ function Bubble({
   color,
   children,
   refProp,
+  onClick,
 }: {
   size: 'lg' | 'md' | 'sm';
   color: string;
   children: React.ReactNode;
   refProp?: (el: HTMLDivElement | null) => void;
+  onClick?: () => void;
 }) {
   const sizes = {
     lg: 'w-32 h-32',
@@ -49,33 +71,26 @@ function Bubble({
   };
 
   return (
-    <div
+    <motion.div
       ref={refProp}
+      onClick={onClick}
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0, opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      whileHover={{ scale: 1.1, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}
       className={`
         ${sizes[size]}
         rounded-full
         flex items-center justify-center text-center
         shadow-md
-        transition-transform
+        cursor-pointer
         ${color}
       `}
     >
       {children}
-    </div>
+    </motion.div>
   );
-}
-
-/* =========================
-   CORES POR GERÊNCIA (ENTERPRISE)
-========================= */
-const GROUP_COLOR_MAP: Record<string, string> = {
-  Tecnologia: 'bg-slate-700 text-white',
-  Financeiro: 'bg-blue-700 text-white',
-  RH: 'bg-teal-700 text-white',
-};
-
-function getGroupColor(name: string) {
-  return GROUP_COLOR_MAP[name] || 'bg-gray-300 text-gray-900';
 }
 
 /* =========================
@@ -84,7 +99,13 @@ function getGroupColor(name: string) {
 export default function BubbleOrganizationChart() {
   const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
+  const [lines, setLines] = useState<{ x1: number; y1: number; x2: number; y2: number }[]>([]);
+  
+  const containerRef = useRef<HTMLDivElement>(null);
+  const nodeRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
+  // Carregar dados
   useEffect(() => {
     const fetchPeople = async () => {
       try {
@@ -92,278 +113,236 @@ export default function BubbleOrganizationChart() {
         if (!response.ok) throw new Error('Erro ao buscar dados');
         const data = await response.json();
         
-        // Converter formato da API para formato do componente
-        const converted: Person[] = data.map((p: any) => ({
-          id: String(p.id),
-          name: p.name,
-          position: p.jobTitle,
-          management: p.department,
-          status: p.status.toLowerCase() === 'active' ? 'active' : 'inactive',
+        // Normalizar dados: converter managerId string para number
+        const normalizedData = data.map((p: any) => ({
+          ...p,
+          id: typeof p.id === 'string' ? parseInt(p.id) : p.id,
+          managerId: p.managerId ? (typeof p.managerId === 'string' ? parseInt(p.managerId) : p.managerId) : null
         }));
         
-        setPeople(converted);
+        console.log('Dados normalizados:', normalizedData.length, 'pessoas');
+        setPeople(normalizedData);
+        
+        // Encontrar CEO e adicionar ao expandedNodes
+        const ceo = normalizedData.find((p: Person) => !p.managerId);
+        if (ceo) {
+          setExpandedNodes(new Set([ceo.id]));
+        }
       } catch (err) {
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchPeople();
   }, []);
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Construir hierarquia
+  const hierarchy = useMemo(() => {
+    if (people.length === 0) return null;
 
-  const orgRef = useRef<HTMLDivElement>(null);
-  const groupRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const managerRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const memberRefs = useRef<Record<string, HTMLDivElement[]>>({});
+    // Encontrar CEO (sem managerId)
+    const ceo = people.find(p => !p.managerId);
+    if (!ceo) return null;
 
-  const [orgOpen, setOrgOpen] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
-  const [expandedMembers, setExpandedMembers] = useState<Record<string, boolean>>({});
-  const [lines, setLines] = useState<
-    { x1: number; y1: number; x2: number; y2: number }[]
-  >([]);
+    // Construir árvore recursivamente
+    const buildTree = (person: Person, level: number): HierarchyNode => {
+      const children = people
+        .filter(p => p.managerId === person.id)
+        .map(child => buildTree(child, level + 1))
+        .sort((a, b) => a.person.name.localeCompare(b.person.name));
 
-  /* =========================
-     AGRUPAMENTO
-  ========================= */
-  const groups: Group[] = useMemo(() => {
-    const map: Record<string, Person[]> = {};
-    people.forEach((p) => {
-      if (!map[p.management]) map[p.management] = [];
-      map[p.management].push(p);
-    });
+      return { person, level, children };
+    };
 
-    return Object.entries(map).map(([name, members]) => {
-      const manager =
-        members.find((m) =>
-          /diretor|gerente|gestor/i.test(m.position)
-        ) || members[0];
-
-      return {
-        name,
-        manager,
-        members: members.filter((m) => m.id !== manager.id),
-      };
-    });
+    return buildTree(ceo, 1);
   }, [people]);
 
-  /* =========================
-     HANDLERS DE CASCATA
-  ========================= */
-  const handleOrgClick = () => {
-    console.log('Organização clicada');
-    const newOrgOpen = !orgOpen;
-    setOrgOpen(newOrgOpen);
-    
-    if (newOrgOpen) {
-      // Abrir todas as gerências em cascata
-      const newOpenGroups: Record<string, boolean> = {};
-      const newExpandedMembers: Record<string, boolean> = {};
-      
-      groups.forEach((g) => {
-        newOpenGroups[g.name] = true;
-        newExpandedMembers[g.name] = true;
-      });
-      
-      console.log('Abrindo grupos:', newOpenGroups);
-      setOpenGroups(newOpenGroups);
-      setExpandedMembers(newExpandedMembers);
-    } else {
-      // Fechar tudo
-      console.log('Fechando tudo');
-      setOpenGroups({});
-      setExpandedMembers({});
-    }
+  // Toggle nó
+  const toggleNode = (nodeId: number) => {
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(nodeId)) {
+        newSet.delete(nodeId);
+        // Fechar todos os filhos também
+        const closeChildren = (id: number) => {
+          people.filter(p => p.managerId === id).forEach(child => {
+            newSet.delete(child.id);
+            closeChildren(child.id);
+          });
+        };
+        closeChildren(nodeId);
+      } else {
+        newSet.add(nodeId);
+      }
+      return newSet;
+    });
   };
 
-  const handleGroupClick = (groupName: string) => {
-    console.log('Grupo clicado:', groupName);
-    const newOpen = !openGroups[groupName];
-    
-    setOpenGroups((prev) => ({ ...prev, [groupName]: newOpen }));
-    
-    if (newOpen) {
-      // Abrir membros automaticamente em cascata
-      setExpandedMembers((prev) => ({ ...prev, [groupName]: true }));
-    } else {
-      // Fechar membros
-      setExpandedMembers((prev) => ({ ...prev, [groupName]: false }));
-    }
+  // Renderizar nó e seus filhos
+  const renderNode = (node: HierarchyNode, depth: number = 0): JSX.Element => {
+    const isExpanded = expandedNodes.has(node.person.id);
+    const hasChildren = node.children.length > 0;
+    const color = LEVEL_COLORS[node.level as keyof typeof LEVEL_COLORS] || 'bg-gray-400 text-white';
+    const size = LEVEL_SIZES[node.level as keyof typeof LEVEL_SIZES] || 'sm';
+
+    return (
+      <div key={node.person.id} className="flex flex-col items-center">
+        <Bubble
+          size={size}
+          color={color}
+          refProp={(el) => (nodeRefs.current[node.person.id] = el)}
+          onClick={() => hasChildren && toggleNode(node.person.id)}
+        >
+          <div className="px-2">
+            <div className="text-xs font-bold truncate">{node.person.name.split(' ')[0]}</div>
+            <div className="text-[9px] opacity-90 truncate">{node.person.jobTitle}</div>
+            {hasChildren && (
+              <div className="text-[8px] mt-0.5">
+                {isExpanded ? '▼' : '▶'} ({node.children.length})
+              </div>
+            )}
+          </div>
+        </Bubble>
+
+        <AnimatePresence>
+          {isExpanded && hasChildren && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex gap-6 flex-wrap justify-center mt-8"
+            >
+              {node.children.map(child => renderNode(child, depth + 1))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
   };
 
-  const handleManagerClick = (groupName: string) => {
-    console.log('Manager clicado:', groupName);
-    setExpandedMembers((prev) => ({ ...prev, [groupName]: !prev[groupName] }));
-  };
-
-  /* =========================
-     LINHAS
-  ========================= */
+  // Calcular linhas SVG
   useLayoutEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !hierarchy) return;
 
-    const cRect = containerRef.current.getBoundingClientRect();
+    // Delay para garantir que as animações terminaram
+    const timer = setTimeout(() => {
+      const cRect = containerRef.current?.getBoundingClientRect();
+      if (!cRect) return;
 
-    const centerTop = (el: HTMLDivElement | null) => {
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      return { x: r.left - cRect.left + r.width / 2, y: r.top - cRect.top };
-    };
+      const newLines: typeof lines = [];
 
-    const centerBottom = (el: HTMLDivElement | null) => {
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      return { x: r.left - cRect.left + r.width / 2, y: r.bottom - cRect.top };
-    };
+      const getCenter = (el: HTMLDivElement | null) => {
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return {
+          x: r.left - cRect.left + r.width / 2,
+          yTop: r.top - cRect.top,
+          yBottom: r.bottom - cRect.top,
+        };
+      };
 
-    const newLines: typeof lines = [];
+      // Percorrer hierarquia e criar linhas
+      const drawLines = (node: HierarchyNode) => {
+        if (!expandedNodes.has(node.person.id)) return;
 
-    if (orgOpen && orgRef.current) {
-      const orgBottom = centerBottom(orgRef.current);
+        const parentEl = nodeRefs.current[node.person.id];
+        const parentPos = getCenter(parentEl);
 
-      groups.forEach((g) => {
-        const gTop = centerTop(groupRefs.current[g.name]);
-        if (orgBottom && gTop) {
-          newLines.push({ x1: orgBottom.x, y1: orgBottom.y, x2: gTop.x, y2: gTop.y });
-        }
+        node.children.forEach(child => {
+          const childEl = nodeRefs.current[child.person.id];
+          const childPos = getCenter(childEl);
 
-        if (openGroups[g.name]) {
-          const gBottom = centerBottom(groupRefs.current[g.name]);
-          const mTop = centerTop(managerRefs.current[g.name]);
-          if (gBottom && mTop) {
-            newLines.push({ x1: gBottom.x, y1: gBottom.y, x2: mTop.x, y2: mTop.y });
-          }
-
-          if (expandedMembers[g.name]) {
-            (memberRefs.current[g.name] || []).forEach((el) => {
-              const mBottom = centerBottom(managerRefs.current[g.name]);
-              const memTop = centerTop(el);
-              if (mBottom && memTop) {
-                newLines.push({ x1: mBottom.x, y1: mBottom.y, x2: memTop.x, y2: memTop.y });
-              }
+          if (parentPos && childPos) {
+            newLines.push({
+              x1: parentPos.x,
+              y1: parentPos.yBottom,
+              x2: childPos.x,
+              y2: childPos.yTop,
             });
           }
-        }
-      });
-    }
 
-    setLines(newLines);
-  }, [orgOpen, openGroups, expandedMembers, groups]);
+          drawLines(child);
+        });
+      };
 
-  /* =========================
-     RENDER
-  ========================= */
+      if (hierarchy) drawLines(hierarchy);
+      setLines(newLines);
+    }, 350); // Espera a animação terminar (300ms + margem)
+
+    return () => clearTimeout(timer);
+  }, [expandedNodes, hierarchy, people]);
+
   if (loading) {
     return (
-      <div className="relative min-h-[900px] py-12 bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Carregando organograma...</div>
+      <div className="relative min-h-screen py-12 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-gray-600 text-lg">Carregando organograma...</div>
+      </div>
+    );
+  }
+
+  if (!hierarchy) {
+    return (
+      <div className="relative min-h-screen py-12 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-gray-600 text-lg">Nenhum dado disponível</div>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className="relative min-h-[900px] py-12 bg-gray-50">
-
+    <div ref={containerRef} className="relative min-h-screen py-12 bg-gradient-to-br from-gray-50 to-gray-100">
       {/* LINHAS */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none">
-        {lines.map((l, i) => (
-          <line
-            key={i}
-            x1={l.x1}
-            y1={l.y1}
-            x2={l.x2}
-            y2={l.y2}
-            stroke="#CBD5E1"
-            strokeWidth="2"
-          />
-        ))}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
+        <AnimatePresence>
+          {lines.map((l, i) => (
+            <motion.line
+              key={`${l.x1}-${l.y1}-${l.x2}-${l.y2}-${i}`}
+              x1={l.x1}
+              y1={l.y1}
+              x2={l.x2}
+              y2={l.y2}
+              stroke="#94A3B8"
+              strokeWidth="2"
+              strokeDasharray="4 4"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              exit={{ pathLength: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            />
+          ))}
+        </AnimatePresence>
       </svg>
 
-      {/* ORGANIZAÇÃO */}
-      <div className="flex justify-center mb-24">
-        <div onClick={handleOrgClick} className="cursor-pointer">
-          <Bubble
-            size="lg"
-            color="bg-[#EB1700] text-white hover:scale-105"
-            refProp={(el) => (orgRef.current = el)}
-          >
-            <span className="font-bold text-lg">Organização</span>
-          </Bubble>
-        </div>
+      {/* HIERARQUIA */}
+      <div className="relative z-10 px-4">
+        {renderNode(hierarchy)}
       </div>
 
-      {/* GERÊNCIAS */}
-      {orgOpen && (
-        <div className="flex justify-center gap-20 flex-wrap">
-          {groups.map((g) => (
-            <div key={g.name} className="flex flex-col items-center gap-10">
-              <div
-                onClick={() => handleGroupClick(g.name)}
-                className="cursor-pointer"
-              >
-                <Bubble
-                  size="md"
-                  color={`${getGroupColor(g.name)} hover:scale-105`}
-                  refProp={(el) => (groupRefs.current[g.name] = el)}
-                >
-                  <span className="text-sm font-semibold">{g.name}</span>
-                </Bubble>
-              </div>
-
-              {openGroups[g.name] && (
-                <>
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleManagerClick(g.name);
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <Bubble
-                      size="sm"
-                      color="bg-green-600 text-white hover:scale-110"
-                      refProp={(el) => (managerRefs.current[g.name] = el)}
-                    >
-                      <div>
-                        <strong className="text-sm">{g.manager?.name.split(' ')[0]}</strong>
-                        <div className="text-[10px] opacity-90">{g.manager?.position}</div>
-                      </div>
-                    </Bubble>
-                  </div>
-
-                  {expandedMembers[g.name] && (
-                    <div className="flex gap-4 flex-wrap justify-center">
-                      {g.members.map((m, i) => (
-                        <Bubble
-                          key={m.id}
-                          size="sm"
-                          color={
-                            m.status === 'active'
-                              ? 'bg-gray-400 text-white'
-                              : 'bg-gray-200 text-gray-600 opacity-70'
-                          }
-                          refProp={(el) => {
-                            if (!memberRefs.current[g.name]) memberRefs.current[g.name] = [];
-                            memberRefs.current[g.name][i] = el!;
-                          }}
-                        >
-                          <div>
-                            <span className="text-sm">{m.name.split(' ')[0]}</span>
-                            <div className="text-[10px]">{m.position}</div>
-                          </div>
-                        </Bubble>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          ))}
+      {/* LEGENDA */}
+      <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 text-xs">
+        <div className="font-bold mb-2">Níveis Hierárquicos</div>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-4 h-4 rounded-full bg-[#EB1700]"></div>
+          <span>CEO</span>
         </div>
-      )}
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-4 h-4 rounded-full bg-blue-700"></div>
+          <span>Vice Presidente</span>
+        </div>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-4 h-4 rounded-full bg-green-600"></div>
+          <span>Diretor/Senior Manager</span>
+        </div>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-4 h-4 rounded-full bg-purple-600"></div>
+          <span>Manager</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded-full bg-gray-500"></div>
+          <span>Staffs</span>
+        </div>
+      </div>
     </div>
   );
 }
