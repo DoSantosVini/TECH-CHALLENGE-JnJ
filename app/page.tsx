@@ -3,40 +3,46 @@
 import { useState } from 'react';
 import Statistics from './components/Statistics';
 import TabsNavigation, { TabType } from './components/TabsNavigation';
-import SearchAndFilterHeader, {
-  FilterState,
-} from './components/SearchAndFilterHeader';
+import PeopleSearch from './components/PeopleSearch';
 import BubbleOrganizationChart from './components/BubbleOrganizationChart';
+import ListagemTable from './components/ListagemTable';
+import SearchResults from './components/SearchResults';
 
-interface SearchResult {
-  id: string;
-  nome: string;
-  nivelHierarquia: string;
-  setor: string;
+interface Person {
+  id: number;
+  name: string;
+  jobTitle: string;
+  department: string;
+  type: string;
   status: string;
-  tipo: string;
+  location: string;
+  workEmail?: string;
+  hireDate?: string;
+  photoUrl?: string;
 }
 
 export default function Home() {
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<Person[]>([]);
+  const [managerMap, setManagerMap] = useState<Record<number, string>>({});
   const [hasSearched, setHasSearched] = useState(false);
-
-  const [filters, setFilters] = useState<FilterState>({
-    departamento: '',
-    gestor: '',
-    tipo: '',
-    status: '',
-  });
-
+  const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('lista');
 
-  const handleSearch = (results: SearchResult[]) => {
-    setResults(results);
+  const handlePeopleSearchResults = (searchResults: Person[], managers: Record<number, string>) => {
+    setResults(searchResults);
+    setManagerMap(managers);
     setHasSearched(true);
   };
 
-  const handleFilterChange = (newFilters: FilterState) => {
-    setFilters(newFilters);
+  const handlePeopleSearchLoading = (loading: boolean) => {
+    setIsLoading(loading);
+  };
+
+  const handlePeopleSearchReset = () => {
+    setResults([]);
+    setManagerMap({});
+    setHasSearched(false);
+    setIsLoading(false);
   };
 
   return (
@@ -44,9 +50,10 @@ export default function Home() {
       <div className="relative">
         <Statistics />
 
-        <SearchAndFilterHeader
-          onSearch={handleSearch}
-          onFilterChange={handleFilterChange}
+        <PeopleSearch
+          onResults={handlePeopleSearchResults}
+          onLoading={handlePeopleSearchLoading}
+          onReset={handlePeopleSearchReset}
         />
 
         <TabsNavigation
@@ -56,77 +63,18 @@ export default function Home() {
       </div>
 
       <div className="relative z-10">
-        {hasSearched && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            {results.length > 0 ? (
-              <div>
-                <h2 className="text-2xl font-semibold text-black mb-6">
-                  Resultados da Busca ({results.length})
-                </h2>
-
-                <div className="grid gap-6">
-                  {results.map((result) => (
-                    <div
-                      key={result.id}
-                      className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-black">
-                            {result.nome}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            ID: {result.id}
-                          </p>
-                        </div>
-
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                            result.status === 'ativo'
-                              ? 'bg-gray-50 text-black border-gray-300'
-                              : 'bg-gray-200 text-black border-gray-300'
-                          }`}
-                        >
-                          {result.status}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-600">Cargo</p>
-                          <p className="font-medium text-black">
-                            {result.nivelHierarquia}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-gray-600">Setor</p>
-                          <p className="font-medium text-black">
-                            {result.setor}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-gray-600">Tipo</p>
-                          <p className="font-medium text-black">
-                            {result.tipo === 'employee'
-                              ? 'Funcionário'
-                              : 'Parceiro'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+        {activeTab === 'lista' && (
+          <>
+            {hasSearched ? (
+              <SearchResults 
+                results={results}
+                managerMap={managerMap}
+                loading={isLoading}
+              />
             ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-600 text-base">
-                  Nenhum resultado encontrado para sua busca
-                </p>
-              </div>
+              <ListagemTable />
             )}
-          </div>
+          </>
         )}
       </div>
 

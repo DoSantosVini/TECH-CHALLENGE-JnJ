@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import ListagemTable from './ListagemTable';
 
 export type TabType = 'lista' | 'organograma';
 
@@ -64,10 +63,6 @@ export default function TabsNavigation({
               </button>
             );
           })}
-        </div>
-
-        <div className="mt-6">
-          {internalTab === 'lista' && <ListagemTable />}
         </div>
       </div>
     </div>

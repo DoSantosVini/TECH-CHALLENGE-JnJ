@@ -1,56 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Person } from './PeoplePage';
+interface Person {
+  id: number;
+  name: string;
+  jobTitle: string;
+  department: string;
+  status: string;
+  employeeType: string;
+}
 
-export default function ListagemTable() {
-  const [people, setPeople] = useState<Person[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [managerMap, setManagerMap] = useState<Record<number, string>>({});
+interface Props {
+  results: Person[];
+  managerMap: Record<number, string>;
+  loading?: boolean;
+}
 
-  // Buscar todos os dados ao montar o componente
-  useEffect(() => {
-    const fetchPeople = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch('/api/people');
-        if (!response.ok) throw new Error('Erro ao buscar dados');
-        const fetchedData = await response.json();
-        setPeople(fetchedData);
-        
-        // Criar mapeamento de managerId para nome
-        const managers: Record<number, string> = {};
-        fetchedData.forEach((person: any) => {
-          if (person.id) {
-            managers[person.id] = person.name;
-          }
-        });
-        setManagerMap(managers);
-      } catch (err) {
-        console.error('Erro ao carregar pessoas:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPeople();
-  }, []);
-
+export default function SearchResults({ results, managerMap, loading }: Props) {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="bg-white rounded-lg shadow-sm p-6 text-center">
-          <p className="text-gray-500">Carregando dados...</p>
+          <p className="text-gray-500">Buscando...</p>
         </div>
       </div>
     );
   }
 
-  if (people.length === 0) {
+  if (results.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="bg-white rounded-lg shadow-sm p-6 text-center">
-          <p className="text-gray-500">Nenhum dado disponível</p>
+          <p className="text-gray-500">Nenhum resultado encontrado para os filtros aplicados</p>
         </div>
       </div>
     );
@@ -58,6 +38,12 @@ export default function ListagemTable() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Resultados da Busca ({results.length} {results.length === 1 ? 'pessoa' : 'pessoas'})
+        </h2>
+      </div>
+      
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full border-collapse">
           <thead className="bg-gray-50">
@@ -83,7 +69,7 @@ export default function ListagemTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {people.map((p, index) => (
+            {results.map((p, index) => (
               <tr key={`${p.id}-${index}`} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 text-sm text-gray-600">
                   {p.id}
