@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import ListagemTable from './ListagemTable';
 
-export type TabType = 'lista' | 'tabela' | 'organograma';
+export type TabType = 'lista' | 'organograma';
 
 interface Tab {
   id: TabType;
@@ -13,7 +13,7 @@ interface Tab {
 
 const tabs: Tab[] = [
   { id: 'lista', label: 'Listagem', icon: '👥' },
-  { id: 'tabela', label: 'Organograma', icon: '📊' },
+  { id: 'organograma', label: 'Organograma', icon: '📊' },
 ];
 
 interface TabsNavigationProps {
@@ -66,7 +66,6 @@ export default function TabsNavigation({
           })}
         </div>
 
-        {/* Conteúdo das abas */}
         <div className="mt-6">
           {internalTab === 'lista' && <ListagemTable />}
         </div>

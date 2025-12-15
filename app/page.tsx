@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import Statistics from './components/Statistics';
-import TabsNavigation from './components/TabsNavigation';
-import SearchAndFilterHeader, { FilterState } from './components/SearchAndFilterHeader';
+import TabsNavigation, { TabType } from './components/TabsNavigation';
+import SearchAndFilterHeader, {
+  FilterState,
+} from './components/SearchAndFilterHeader';
 import BubbleOrganizationChart from './components/BubbleOrganizationChart';
 
 interface SearchResult {
@@ -18,6 +20,7 @@ interface SearchResult {
 export default function Home() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+
   const [filters, setFilters] = useState<FilterState>({
     departamento: '',
     gestor: '',
@@ -25,7 +28,7 @@ export default function Home() {
     status: '',
   });
 
-  const [activeTab, setActiveTab] = useState<'lista' | 'tabela'>('lista');
+  const [activeTab, setActiveTab] = useState<TabType>('lista');
 
   const handleSearch = (results: SearchResult[]) => {
     setResults(results);
@@ -48,7 +51,7 @@ export default function Home() {
 
         <TabsNavigation
           activeTab={activeTab}
-          onTabChange={(t) => setActiveTab(t)}
+          onTabChange={setActiveTab}
         />
       </div>
 
@@ -127,7 +130,7 @@ export default function Home() {
         )}
       </div>
 
-      {activeTab === 'tabela' && (
+      {activeTab === 'organograma' && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <h2 className="text-2xl font-semibold text-black mb-6">
             Organograma
