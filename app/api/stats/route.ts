@@ -1,59 +1,41 @@
 import { NextResponse } from 'next/server';
-
-// Dados mock (pode ser substituído por uma origem real)
-const dados = [
-  {
-    id: 'EMP001',
-    nome: 'João Silva',
-    nivelHierarquia: 'Diretor',
-    setor: 'TI',
-    status: 'ativo',
-    tipo: 'employee',
-  },
-  {
-    id: 'EMP002',
-    nome: 'Maria Santos',
-    nivelHierarquia: 'Gerente',
-    setor: 'Vendas',
-    status: 'ativo',
-    tipo: 'employee',
-  },
-  {
-    id: 'PART001',
-    nome: 'Carlos Oliveira',
-    nivelHierarquia: 'Consultor',
-    setor: 'TI',
-    status: 'inativo',
-    tipo: 'partner',
-  },
-  {
-    id: 'EMP003',
-    nome: 'Ana Costa',
-    nivelHierarquia: 'Analista',
-    setor: 'Financeiro',
-    status: 'ativo',
-    tipo: 'employee',
-  },
-  {
-    id: 'PART002',
-    nome: 'Pedro Mendes',
-    nivelHierarquia: 'Contratado',
-    setor: 'RH',
-    status: 'ativo',
-    tipo: 'partner',
-  },
-];
+import { getSupabaseClient } from '@/lib/supabase';
 
 export async function GET() {
-  const total = dados.length;
-  const ativos = dados.filter((d) => d.status === 'ativo').length;
-  const inativos = dados.filter((d) => d.status === 'inativo').length;
-  const employees = dados.filter((d) => d.tipo === 'employee').length;
-  const partners = dados.filter((d) => d.tipo === 'partner').length;
-  const gerencias = dados.filter((d) => {
-    const nivel = (d.nivelHierarquia || '').toLowerCase();
-    return nivel.includes('ger') || nivel.includes('diretor');
+  const supabase = getSupabaseClient();
+
+  // Buscar todos os dados do banco
+  const { data, error } = await supabase
+    .from('people')
+    .select('*');
+
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+
+  // Calcular estatísticas
+  const total = data.length;
+  const ativos = data.filter((d) => d.status.toLowerCase() === 'active').length;
+  const inativos = data.filter((d) => d.status.toLowerCase() === 'inactive').length;
+  const employees = data.filter((d) => d.type.toLowerCase() === 'employee').length;
+  const partners = data.filter((d) => d.type.toLowerCase() === 'partner').length;
+  const gerencias = data.filter((d) => {
+    const nivel = (d.jobTitle || '').toLowerCase();
+    return nivel.includes('ger') || nivel.includes('diretor') || 
+           nivel.includes('manager') || nivel.includes('director') ||
+           nivel.includes('vice president') || nivel.includes('vp') ||
+           nivel.includes('ceo') || nivel.includes('president');
   }).length;
 
-  return NextResponse.json({ total, ativos, inativos, gerencias, employees, partners });
+  return NextResponse.json({ 
+    total, 
+    ativos, 
+    inativos, 
+    gerencias, 
+    employees, 
+    partners 
+  });
 }

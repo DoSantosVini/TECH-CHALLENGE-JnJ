@@ -5,6 +5,7 @@ import React, {
   useState,
   useRef,
   useLayoutEffect,
+  useEffect,
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -26,22 +27,6 @@ type Group = {
   manager?: Person;
   members: Person[];
 };
-
-/* =========================
-   MOCK
-========================= */
-const people: Person[] = [
-  { id: '1', name: 'Carlos Silva', position: 'Diretor', management: 'Tecnologia', status: 'active' },
-  { id: '2', name: 'Beatriz Costa', position: 'Gerente', management: 'Tecnologia', status: 'active' },
-  { id: '3', name: 'Pedro Souza', position: 'Dev', management: 'Tecnologia', status: 'active' },
-  { id: '4', name: 'Ana Martins', position: 'Dev', management: 'Tecnologia', status: 'inactive' },
-
-  { id: '5', name: 'Mariana Rocha', position: 'Diretora', management: 'Financeiro', status: 'active' },
-  { id: '6', name: 'João Pereira', position: 'Gestor', management: 'Financeiro', status: 'active' },
-
-  { id: '7', name: 'Lucas Almeida', position: 'Gerente', management: 'RH', status: 'active' },
-  { id: '8', name: 'Sofia Lima', position: 'Analista', management: 'RH', status: 'active' },
-];
 
 /* =========================
    BOLHA BASE
@@ -97,6 +82,36 @@ function getGroupColor(name: string) {
    COMPONENTE PRINCIPAL
 ========================= */
 export default function BubbleOrganizationChart() {
+  const [people, setPeople] = useState<Person[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPeople = async () => {
+      try {
+        const response = await fetch('/api/people');
+        if (!response.ok) throw new Error('Erro ao buscar dados');
+        const data = await response.json();
+        
+        // Converter formato da API para formato do componente
+        const converted: Person[] = data.map((p: any) => ({
+          id: String(p.id),
+          name: p.name,
+          position: p.jobTitle,
+          management: p.department,
+          status: p.status.toLowerCase() === 'active' ? 'active' : 'inactive',
+        }));
+        
+        setPeople(converted);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPeople();
+  }, []);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   const orgRef = useRef<HTMLDivElement>(null);
@@ -192,6 +207,14 @@ export default function BubbleOrganizationChart() {
   /* =========================
      RENDER
   ========================= */
+  if (loading) {
+    return (
+      <div className="relative min-h-[900px] py-12 bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Carregando organograma...</div>
+      </div>
+    );
+  }
+
   return (
     <div ref={containerRef} className="relative min-h-[900px] py-12 bg-gray-50">
 

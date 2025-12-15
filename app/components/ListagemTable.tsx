@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 interface Person {
   id: number;
@@ -15,33 +15,28 @@ interface Person {
   photoUrl?: string;
 }
 
-const peopleData: Person[] = [
-  {
-    id: 1,
-    name: "Joaquin Duato",
-    jobTitle: "CEO",
-    department: "Executive",
-    type: "Employee",
-    status: "Active",
-    location: "United States",
-    workEmail: "joaquin.duato@jnj.com",
-    hireDate: "2017-04-28",
-    photoUrl: "https://via.placeholder.com/200",
-  },
-  {
-    id: 2,
-    name: "Maria Souza",
-    jobTitle: "Vice President",
-    department: "Executive",
-    type: "Employee",
-    status: "Active",
-    location: "United States",
-    workEmail: "maria.souza@jnj.com",
-    hireDate: "2003-08-16",
-  },
-];
-
 export default function ListagemTable() {
+  const [peopleData, setPeopleData] = useState<Person[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPeople = async () => {
+      try {
+        const response = await fetch('/api/people');
+        if (!response.ok) throw new Error('Erro ao buscar dados');
+        const data = await response.json();
+        setPeopleData(data);
+      } catch (err) {
+        console.error(err);
+        setError('Não foi possível carregar os dados');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPeople();
+  }, []);
   const getInitials = (name: string) =>
     name
       .split(" ")
@@ -65,6 +60,26 @@ export default function ListagemTable() {
     win.document.close();
     win.focus();
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          Carregando dados...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="bg-white rounded-lg shadow-sm p-6 text-red-600">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-6">

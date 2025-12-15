@@ -1,48 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Dados simulados - você pode substituir por uma chamada real ao banco de dados
-const dados = [
-  {
-    id: 'EMP001',
-    nome: 'João Silva',
-    nivelHierarquia: 'Diretor',
-    setor: 'TI',
-    status: 'ativo',
-    tipo: 'employee',
-  },
-  {
-    id: 'EMP002',
-    nome: 'Maria Santos',
-    nivelHierarquia: 'Gerente',
-    setor: 'Vendas',
-    status: 'ativo',
-    tipo: 'employee',
-  },
-  {
-    id: 'PART001',
-    nome: 'Carlos Oliveira',
-    nivelHierarquia: 'Consultor',
-    setor: 'TI',
-    status: 'inativo',
-    tipo: 'partner',
-  },
-  {
-    id: 'EMP003',
-    nome: 'Ana Costa',
-    nivelHierarquia: 'Analista',
-    setor: 'Financeiro',
-    status: 'ativo',
-    tipo: 'employee',
-  },
-  {
-    id: 'PART002',
-    nome: 'Pedro Mendes',
-    nivelHierarquia: 'Contratado',
-    setor: 'RH',
-    status: 'ativo',
-    tipo: 'partner',
-  },
-];
+import { getSupabaseClient } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -55,10 +12,30 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Filtro case-insensitive
-  const resultados = dados.filter((pessoa) =>
-    pessoa.nome.toLowerCase().includes(nome.toLowerCase())
-  );
+  const supabase = getSupabaseClient();
+
+  // Buscar no banco de dados com filtro case-insensitive
+  const { data, error } = await supabase
+    .from('people')
+    .select('*')
+    .ilike('name', `%${nome}%`);
+
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+
+  // Mapear para o formato esperado pelo frontend
+  const resultados = data.map((pessoa) => ({
+    id: pessoa.id,
+    nome: pessoa.name,
+    nivelHierarquia: pessoa.jobTitle,
+    setor: pessoa.department,
+    status: pessoa.status.toLowerCase(),
+    tipo: pessoa.type.toLowerCase(),
+  }));
 
   return NextResponse.json({
     total: resultados.length,

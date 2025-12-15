@@ -37,6 +37,39 @@ export default function SearchAndFilterHeader({
     tipo: '',
     status: '',
   });
+  
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [managers, setManagers] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Buscar departamentos e gestores únicos do banco
+    const fetchFilterOptions = async () => {
+      try {
+        const response = await fetch('/api/people');
+        if (!response.ok) return;
+        const data = await response.json();
+        
+        // Extrair departamentos únicos
+        const uniqueDepts = Array.from(new Set(data.map((p: any) => p.department).filter(Boolean)));
+        setDepartments(uniqueDepts as string[]);
+        
+        // Extrair nomes de pessoas que são gestores (baseado em jobTitle)
+        const managersList = data
+          .filter((p: any) => {
+            const title = (p.jobTitle || '').toLowerCase();
+            return title.includes('manager') || title.includes('director') || 
+                   title.includes('vice president') || title.includes('president') ||
+                   title.includes('ceo') || title.includes('vp');
+          })
+          .map((p: any) => p.name);
+        setManagers(managersList);
+      } catch (err) {
+        console.error('Erro ao carregar opções de filtro:', err);
+      }
+    };
+    
+    fetchFilterOptions();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 100);
@@ -157,10 +190,11 @@ export default function SearchAndFilterHeader({
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
               >
                 <option value="">Todos</option>
-                <option value="TI">TI</option>
-                <option value="Vendas">Vendas</option>
-                <option value="Financeiro">Financeiro</option>
-                <option value="RH">RH</option>
+                {departments.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -177,9 +211,11 @@ export default function SearchAndFilterHeader({
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
               >
                 <option value="">Todos</option>
-                <option value="João Silva">João Silva</option>
-                <option value="Maria Santos">Maria Santos</option>
-                <option value="Ana Costa">Ana Costa</option>
+                {managers.map((manager) => (
+                  <option key={manager} value={manager}>
+                    {manager}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -196,8 +232,8 @@ export default function SearchAndFilterHeader({
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
               >
                 <option value="">Todos</option>
-                <option value="employee">Funcionário</option>
-                <option value="partner">Parceiro</option>
+                <option value="Employee">Funcionário</option>
+                <option value="Partner">Parceiro</option>
               </select>
             </div>
 
@@ -214,8 +250,8 @@ export default function SearchAndFilterHeader({
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
               >
                 <option value="">Todos</option>
-                <option value="ativo">Ativo</option>
-                <option value="inativo">Inativo</option>
+                <option value="Active">Ativo</option>
+                <option value="Inactive">Inativo</option>
               </select>
             </div>
 
