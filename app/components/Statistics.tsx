@@ -11,11 +11,18 @@ interface Stats {
   partners: number;
 }
 
-export default function Statistics() {
+interface StatisticsProps {
+  filteredStats?: Stats | null;
+}
+
+export default function Statistics({ filteredStats }: StatisticsProps) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Usar estatísticas filtradas se disponíveis, senão usar as originais
+  const displayStats = filteredStats || stats;
 
   useEffect(() => {
     let mounted = true;
@@ -60,7 +67,7 @@ export default function Statistics() {
     );
   }
 
-  if (error || !stats) {
+  if (error || !displayStats) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="bg-white rounded-lg shadow-sm p-6 text-[var(--jj-red)]">
@@ -103,38 +110,38 @@ export default function Statistics() {
             {/* Total */}
             <StatCard
               label="Total de Pessoas"
-              value={stats.total}
+              value={displayStats.total}
               highlight
               isScrolled={isScrolled}
             />
 
             <StatCard
               label="Ativos"
-              value={stats.ativos}
+              value={displayStats.ativos}
               isScrolled={isScrolled}
             />
 
             <StatCard
               label="Inativos"
-              value={stats.inativos}
+              value={displayStats.inativos}
               isScrolled={isScrolled}
             />
 
             <StatCard
               label="Gerências"
-              value={stats.gerencias}
+              value={displayStats.gerencias}
               isScrolled={isScrolled}
             />
 
             <StatCard
               label="Employees"
-              value={stats.employees}
+              value={displayStats.employees}
               isScrolled={isScrolled}
             />
 
             <StatCard
               label="Partners"
-              value={stats.partners}
+              value={displayStats.partners}
               isScrolled={isScrolled}
             />
           </div>

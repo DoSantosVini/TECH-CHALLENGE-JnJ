@@ -18,8 +18,17 @@ export interface Person {
   type: string;
 }
 
+export interface FilteredStats {
+  total: number;
+  ativos: number;
+  inativos: number;
+  gerencias: number;
+  employees: number;
+  partners: number;
+}
+
 interface Props {
-  onResults: (results: Person[], managerMap: Record<number, string>) => void;
+  onResults: (results: Person[], managerMap: Record<number, string>, stats: FilteredStats, allPeople: Person[]) => void;
   onLoading?: (loading: boolean) => void;
   onReset?: () => void;
 }
@@ -131,20 +140,26 @@ export default function PeopleSearch({
   useEffect(() => {
     if (isLoadingData) return;
 
-    // Se não houver termo de busca nem filtros, não aplicar filtro (mas não chamar onResults)
-    if (
-      !searchQuery.trim() &&
-      !filters.departamento &&
-      !filters.manager &&
-      !filters.tipo &&
-      !filters.status
-    ) {
+    // Verificar se há algum filtro ativo
+    const hasActiveFilters = 
+      searchQuery.trim() ||
+      filters.departamento ||
+      filters.manager ||
+      filters.tipo ||
+      filters.status;
+
+    // Se não houver nenhum filtro ativo, não aplicar filtro
+    if (!hasActiveFilters) {
       return;
     }
 
+    // Começar com todos os dados
     let filtered = [...allPeople];
 
-    // Filtrar por termo de busca (nome ou ID)
+    // Aplicar cada filtro de forma independente
+    // Cada filtro só é aplicado se tiver um valor selecionado (não for vazio ou "Todos")
+
+    // 1. Filtrar por termo de busca (nome ou ID)
     if (searchQuery.trim()) {
       const searchLower = searchQuery.trim().toLowerCase();
       const isNumeric = /^\d+$/.test(searchQuery.trim());
@@ -160,15 +175,15 @@ export default function PeopleSearch({
       });
     }
 
-    // Filtrar por departamento
-    if (filters.departamento) {
+    // 2. Filtrar por departamento (independente dos outros filtros)
+    if (filters.departamento && filters.departamento !== '') {
       filtered = filtered.filter((person: any) => 
         person.department === filters.departamento
       );
     }
 
-    // Filtrar por manager (subordinados do manager selecionado)
-    if (filters.manager) {
+    // 3. Filtrar por manager (independente dos outros filtros)
+    if (filters.manager && filters.manager !== '') {
       // Extrair o ID do formato "Nome (ID: 123)"
       const idMatch = filters.manager.match(/\(ID:\s*(\d+)\)/);
       
@@ -196,8 +211,8 @@ export default function PeopleSearch({
       }
     }
 
-    // Filtrar por tipo
-    if (filters.tipo) {
+    // 4. Filtrar por tipo (independente dos outros filtros)
+    if (filters.tipo && filters.tipo !== '') {
       filtered = filtered.filter((person: any) => {
         const personType = String(person.type || '').trim();
         const filterType = String(filters.tipo).trim();
@@ -205,8 +220,8 @@ export default function PeopleSearch({
       });
     }
 
-    // Filtrar por status
-    if (filters.status) {
+    // 5. Filtrar por status (independente dos outros filtros)
+    if (filters.status && filters.status !== '') {
       filtered = filtered.filter((person: any) => {
         const personStatus = String(person.status || '').trim();
         const filterStatus = String(filters.status).trim();
@@ -214,7 +229,17 @@ export default function PeopleSearch({
       });
     }
 
-    onResults(filtered, managerMap);
+    // Calcular estatísticas dos resultados filtrados
+    const filteredStats: FilteredStats = {
+      total: filtered.length,
+      ativos: filtered.filter((p: any) => p.status === 'Active').length,
+      inativos: filtered.filter((p: any) => p.status === 'Inactive').length,
+      gerencias: new Set(filtered.map((p: any) => p.department)).size,
+      employees: filtered.filter((p: any) => p.type === 'Employee').length,
+      partners: filtered.filter((p: any) => p.type === 'Partner').length,
+    };
+
+    onResults(filtered, managerMap, filteredStats, allPeople);
   }, [searchQuery, filters, allPeople, isLoadingData, managerMap]);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -248,7 +273,7 @@ export default function PeopleSearch({
   };
 
   return (
-    <div className="sticky top-[100px] z-30 bg-[var(--jj-red)] shadow-md">
+    <div className="sticky top-[190px] z-30 bg-[var(--jj-red)] shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="mb-3 text-center">
           <h1 className="text-white text-2xl font-semibold">
@@ -298,7 +323,7 @@ export default function PeopleSearch({
                   color: 'white'
                 }}
                 className="
-                  w-full px-4 py-2 rounded-lg text-sm font-medium
+                  w-full px-4 py-2 rounded-lg text-sm font-medium text-center
                   hover:bg-red-700 transition-colors
                   disabled:bg-gray-400 disabled:cursor-not-allowed
                   mt-[21px]

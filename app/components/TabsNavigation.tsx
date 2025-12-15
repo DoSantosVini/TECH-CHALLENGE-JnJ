@@ -38,7 +38,7 @@ export default function TabsNavigation({
   };
 
   return (
-    <div className="sticky top-96 z-30 bg-white border-b border-gray-200">
+    <div className="sticky top-[100px] z-30 bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex gap-3 justify-center sm:justify-start">
           {tabs.map((tab) => {
