@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 
@@ -14,7 +14,8 @@ interface Stats {
 export default function Statistics() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);	const [isScrolled, setIsScrolled] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -35,7 +36,6 @@ export default function Statistics() {
     };
 
     fetchStats();
-
     return () => {
       mounted = false;
     };
@@ -53,8 +53,8 @@ export default function Statistics() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          Carregando estatísticas...
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          Carregando estatísticas…
         </div>
       </div>
     );
@@ -63,7 +63,7 @@ export default function Statistics() {
   if (error || !stats) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-lg shadow p-6 text-red-600">
+        <div className="bg-white rounded-lg shadow-sm p-6 text-[var(--jj-red)]">
           {error ?? 'Erro desconhecido'}
         </div>
       </div>
@@ -71,58 +71,118 @@ export default function Statistics() {
   }
 
   return (
-    <div className={`sticky top-0 z-40 bg-gray-50 transition-all duration-300 ${isScrolled ? 'shadow-lg py-3' : 'shadow-sm py-6'}`}>
+    <div
+      className={`
+        sticky top-0 z-40 bg-white transition-all duration-300
+        ${isScrolled ? 'shadow-md py-3' : 'shadow-sm py-6'}
+      `}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`bg-white rounded-lg shadow transition-all duration-300 ${isScrolled ? 'p-3' : 'p-6'}`}>
+        <div
+          className={`
+            bg-white rounded-lg transition-all duration-300
+            ${isScrolled ? 'p-3' : 'p-6'}
+          `}
+        >
           {!isScrolled && (
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Estatísticas</h2>
+            <h2 className="text-xl font-semibold text-black mb-4">
+              Estatísticas
+            </h2>
           )}
 
-          <div className={`grid transition-all duration-300 ${isScrolled ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4'}`}>
-            <div className={`bg-blue-50 rounded-lg ${isScrolled ? 'p-2' : 'p-4'}`}>
-              <p className={`text-blue-600 ${isScrolled ? 'text-xs' : 'text-sm'}`}>Total de Pessoas</p>
-              <p className={`font-bold text-blue-800 ${isScrolled ? 'text-lg' : 'text-3xl'}`}>
-                {stats.total}
-              </p>
-            </div>
+          <div
+            className={`
+              grid transition-all duration-300
+              ${
+                isScrolled
+                  ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2'
+                  : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4'
+              }
+            `}
+          >
+            {/* Total */}
+            <StatCard
+              label="Total de Pessoas"
+              value={stats.total}
+              highlight
+              isScrolled={isScrolled}
+            />
 
-            <div className={`bg-green-50 rounded-lg ${isScrolled ? 'p-2' : 'p-4'}`}>
-              <p className={`text-green-600 ${isScrolled ? 'text-xs' : 'text-sm'}`}>Ativos</p>
-              <p className={`font-bold text-green-800 ${isScrolled ? 'text-lg' : 'text-3xl'}`}>
-                {stats.ativos}
-              </p>
-            </div>
+            <StatCard
+              label="Ativos"
+              value={stats.ativos}
+              isScrolled={isScrolled}
+            />
 
-            <div className={`bg-gray-50 rounded-lg ${isScrolled ? 'p-2' : 'p-4'}`}>
-              <p className={`text-gray-600 ${isScrolled ? 'text-xs' : 'text-sm'}`}>Inativos</p>
-              <p className={`font-bold text-gray-900 ${isScrolled ? 'text-lg' : 'text-3xl'}`}>
-                {stats.inativos}
-              </p>
-            </div>
+            <StatCard
+              label="Inativos"
+              value={stats.inativos}
+              isScrolled={isScrolled}
+            />
 
-            <div className={`bg-purple-50 rounded-lg ${isScrolled ? 'p-2' : 'p-4'}`}>
-              <p className={`text-purple-600 ${isScrolled ? 'text-xs' : 'text-sm'}`}>Gerências</p>
-              <p className={`font-bold text-purple-800 ${isScrolled ? 'text-lg' : 'text-3xl'}`}>
-                {stats.gerencias}
-              </p>
-            </div>
+            <StatCard
+              label="Gerências"
+              value={stats.gerencias}
+              isScrolled={isScrolled}
+            />
 
-            <div className={`bg-white rounded-lg border ${isScrolled ? 'p-2' : 'p-4'}`}>
-              <p className={`text-gray-600 ${isScrolled ? 'text-xs' : 'text-sm'}`}>Employe</p>
-              <p className={`font-bold text-gray-900 ${isScrolled ? 'text-base' : 'text-2xl'}`}>
-                {stats.employees}
-              </p>
-            </div>
+            <StatCard
+              label="Employees"
+              value={stats.employees}
+              isScrolled={isScrolled}
+            />
 
-            <div className={`bg-white rounded-lg border ${isScrolled ? 'p-2' : 'p-4'}`}>
-              <p className={`text-gray-600 ${isScrolled ? 'text-xs' : 'text-sm'}`}>Partner</p>
-              <p className={`font-bold text-gray-900 ${isScrolled ? 'text-base' : 'text-2xl'}`}>
-                {stats.partners}
-              </p>
-            </div>
+            <StatCard
+              label="Partners"
+              value={stats.partners}
+              isScrolled={isScrolled}
+            />
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ===== Card padronizado ===== */
+function StatCard({
+  label,
+  value,
+  highlight = false,
+  isScrolled,
+}: {
+  label: string;
+  value: number;
+  highlight?: boolean;
+  isScrolled: boolean;
+}) {
+  return (
+    <div
+      className={`
+        rounded-lg border
+        ${highlight ? 'border-[var(--jj-red)] bg-[rgba(235,17,0,0.04)]' : 'border-gray-200 bg-white'}
+        ${isScrolled ? 'p-2' : 'p-4'}
+      `}
+    >
+      <p
+        className={`
+          font-medium
+          ${highlight ? 'text-[var(--jj-red)]' : 'text-gray-600'}
+          ${isScrolled ? 'text-xs' : 'text-sm'}
+        `}
+      >
+        {label}
+      </p>
+
+      <p
+        className={`
+          font-bold
+          ${highlight ? 'text-black' : 'text-gray-900'}
+          ${isScrolled ? 'text-lg' : 'text-3xl'}
+        `}
+      >
+        {value}
+      </p>
     </div>
   );
 }

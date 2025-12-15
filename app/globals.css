@@ -1,26 +1,123 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ======================================================
+   Johnson & Johnson — Global Design Tokens
+   ====================================================== */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+:root {
+  /* Core colors */
+  --jj-red: #EB1700;
+  --jj-red-dark: #B21000;
+  --jj-white: #FFFFFF;
+  --jj-black: #000000;
+
+  /* Neutrals */
+  --jj-bg: #F3F4F6;          /* gray-100 */
+  --jj-border: #D1D5DB;      /* gray-300 */
+  --jj-muted: #6B7280;       /* gray-500 */
+
+  /* Typography */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ======================================================
+   Base styles
+   ====================================================== */
+
+html,
+body {
+  background-color: var(--jj-bg);
+  color: var(--jj-black);
+  font-family:
+    'Johnson Display',
+    'Johnson Text',
+    Arial,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ======================================================
+   Forms & interactive elements
+   ====================================================== */
+
+input,
+textarea,
+select,
+button {
+  background-color: var(--jj-white);
+  color: var(--jj-black);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9CA3AF; /* gray-400 */
+}
+
+/* Accessible focus — J&J Red */
+input:focus,
+textarea:focus,
+select:focus,
+button:focus {
+  outline: 2px solid var(--jj-red);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(235, 17, 0, 0.12);
+}
+
+/* ======================================================
+   SVG & icons
+   ====================================================== */
+
+svg {
+  color: inherit;
+}
+
+/* ======================================================
+   Johnson & Johnson — Utility helpers
+   ====================================================== */
+
+/* Accent text */
+.jj-accent {
+  color: var(--jj-red);
+}
+
+/* Outline button */
+.jj-btn {
+  background-color: var(--jj-white);
+  color: var(--jj-red);
+  border: 1px solid var(--jj-red);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-weight: 500;
+}
+
+/* Filled primary button */
+.jj-btn--filled {
+  background-color: var(--jj-red);
+  color: var(--jj-white);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-weight: 500;
+}
+
+.jj-btn--filled:focus {
+  outline: 2px solid var(--jj-red-dark);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(235, 17, 0, 0.12);
+}
+
+/* Status / badge */
+.jj-badge-danger {
+  background-color: rgba(235, 17, 0, 0.08);
+  color: var(--jj-red);
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
 }

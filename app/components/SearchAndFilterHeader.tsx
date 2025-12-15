@@ -38,26 +38,21 @@ export default function SearchAndFilterHeader({
     status: '',
   });
 
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 100);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setError(null);
   };
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 100);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   const handleFilterChange = (key: keyof FilterState, value: string) => {
-    const updatedFilters = { ...filters, [key]: value };
-    setFilters(updatedFilters);
-    if (onFilterChange) {
-      onFilterChange(updatedFilters);
-    }
+    const updated = { ...filters, [key]: value };
+    setFilters(updated);
+    onFilterChange?.(updated);
   };
 
   const handleSearch = async (e: FormEvent<HTMLFormElement>) => {
@@ -72,103 +67,96 @@ export default function SearchAndFilterHeader({
     setError(null);
 
     try {
-      const response = await fetch(
+      const res = await fetch(
         `/api/search?nome=${encodeURIComponent(searchTerm)}`
       );
 
-      if (!response.ok) {
-        throw new Error('Erro ao buscar dados');
-      }
+      if (!res.ok) throw new Error('Erro ao buscar dados');
 
-      const data = await response.json();
-
-      if (onSearch) {
-        onSearch(data);
-      }
+      const data = await res.json();
+      onSearch?.(data);
 
       if (data.length === 0) {
         setError('Nenhum resultado encontrado');
       }
     } catch (err) {
-      setError('Erro ao conectar com o servidor');
       console.error(err);
+      setError('Erro ao conectar com o servidor');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleReset = () => {
-    setSearchTerm('');
-    const resetFilters = {
+    const reset = {
       departamento: '',
       gestor: '',
       tipo: '',
       status: '',
     };
-    setFilters(resetFilters);
+    setSearchTerm('');
+    setFilters(reset);
     setError(null);
-    if (onFilterChange) {
-      onFilterChange(resetFilters);
-    }
+    onFilterChange?.(reset);
   };
 
   return (
-    <div className={`sticky ${isScrolled ? 'top-16' : 'top-40'} z-30 shadow-lg transition-all duration-300 bg-gradient-to-r from-blue-600 to-blue-800`}>
-      <header className="w-full">
-      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isScrolled ? 'py-2' : 'py-4'}`}>
-        {!isScrolled && <h1 className="text-white text-2xl font-bold mb-4">Buscar Usuário</h1>}
-
-        {/* Busca e Filtros na mesma linha */}
-        <div className="bg-white bg-opacity-10 rounded-lg p-4 transition-all duration-300">
-          {/* Seção de Busca */}
-          <div className="mb-4 pb-4 border-b border-white border-opacity-20">
-            <form onSubmit={handleSearch} className="w-full">
-              <div className="flex flex-col">
-                <label className="text-xs font-semibold text-black mb-2">
-                  Search
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={handleInputChange}
-                    placeholder="Name, title, or email..."
-                    className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="px-6 py-2 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap"
-                  >
-                    {isLoading ? '...' : 'Search'}
-                  </button>
-                </div>
-              </div>
-            </form>
-
-            {/* Mensagem de erro */}
-            {error && (
-              <div className="text-white bg-red-500 bg-opacity-20 border border-red-400 rounded-lg px-4 py-2 mt-3 max-w-md text-sm">
-                {error}
-              </div>
-            )}
+    <div
+      className={`
+        sticky z-30 transition-all duration-300
+        ${isScrolled ? 'top-16 shadow-md' : 'top-40'}
+        bg-[var(--jj-red)]
+      `}
+    >
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isScrolled ? 'py-3' : 'py-5'}`}>
+        {!isScrolled && (
+          <div className="mb-4">
+            <h1 className="text-white text-2xl font-semibold">
+              Buscar pessoas
+            </h1>
+            <p className="text-white/80 text-sm">
+              Refine sua busca usando filtros organizacionais
+            </p>
           </div>
+        )}
 
-          {/* Seção de Filtros */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="bg-white rounded-lg shadow-sm p-4">
+          <form
+            onSubmit={handleSearch}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-4 items-end"
+          >
+            {/* Search */}
+            <div className="lg:col-span-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Busca
+              </label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={handleInputChange}
+                placeholder="Nome ou ID"
+                disabled={isLoading}
+                className="
+                  w-full px-3 py-2 rounded-lg border border-gray-300
+                  text-black placeholder-gray-400 text-sm
+                  focus:outline-none focus:ring-2 focus:ring-[var(--jj-red)]
+                "
+              />
+            </div>
 
-            {/* Departamento */}
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-black mb-2">
-                Department
+            {/* Department */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Departamento
               </label>
               <select
                 value={filters.departamento}
-                onChange={(e) => handleFilterChange('departamento', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm"
+                onChange={(e) =>
+                  handleFilterChange('departamento', e.target.value)
+                }
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
               >
-                <option value="">All Departments</option>
+                <option value="">Todos</option>
                 <option value="TI">TI</option>
                 <option value="Vendas">Vendas</option>
                 <option value="Financeiro">Financeiro</option>
@@ -176,68 +164,84 @@ export default function SearchAndFilterHeader({
               </select>
             </div>
 
-            {/* Gestor */}
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-black mb-2">
-                Manager
+            {/* Manager */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Gestor
               </label>
               <select
                 value={filters.gestor}
-                onChange={(e) => handleFilterChange('gestor', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm"
+                onChange={(e) =>
+                  handleFilterChange('gestor', e.target.value)
+                }
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
               >
-                <option value="">All Managers</option>
+                <option value="">Todos</option>
                 <option value="João Silva">João Silva</option>
                 <option value="Maria Santos">Maria Santos</option>
                 <option value="Ana Costa">Ana Costa</option>
               </select>
             </div>
 
-            {/* Tipo */}
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-black mb-2">
-                Type
+            {/* Type */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Tipo
               </label>
               <select
                 value={filters.tipo}
-                onChange={(e) => handleFilterChange('tipo', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm"
+                onChange={(e) =>
+                  handleFilterChange('tipo', e.target.value)
+                }
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
               >
-                <option value="">All Types</option>
+                <option value="">Todos</option>
                 <option value="employee">Funcionário</option>
                 <option value="partner">Parceiro</option>
               </select>
             </div>
 
             {/* Status */}
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-black mb-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Status
               </label>
               <select
                 value={filters.status}
-                onChange={(e) => handleFilterChange('status', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm"
+                onChange={(e) =>
+                  handleFilterChange('status', e.target.value)
+                }
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"
               >
-                <option value="">All Statuses</option>
+                <option value="">Todos</option>
                 <option value="ativo">Ativo</option>
                 <option value="inativo">Inativo</option>
               </select>
             </div>
 
-            {/* Botão Limpar */}
-            <div className="flex flex-col justify-end">
+            {/* Clear */}
+            <div>
               <button
+                type="button"
                 onClick={handleReset}
-                className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-gray-100 font-medium text-sm transition-colors"
+                className="
+                  w-full px-4 py-2 rounded-lg text-sm font-medium
+                  bg-gray-100 text-black
+                  hover:bg-gray-200 transition-colors
+                "
               >
-                Clear
+                Limpar
               </button>
             </div>
-          </div>
+          </form>
+
+          {error && (
+            <div className="mt-3 text-sm text-black border border-gray-300 rounded-lg px-4 py-2">
+              {error}
+            </div>
+          )}
         </div>
       </div>
-      </header>
     </div>
   );
 }

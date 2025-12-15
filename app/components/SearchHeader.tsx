@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, ChangeEvent, FormEvent } from 'react';
 
@@ -27,7 +27,7 @@ export default function SearchHeader({ onSearch }: SearchHeaderProps) {
 
   const handleSearch = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (!searchTerm.trim()) {
       setError('Digite um nome ou ID para buscar');
       return;
@@ -46,50 +46,75 @@ export default function SearchHeader({ onSearch }: SearchHeaderProps) {
       }
 
       const data = await response.json();
-      
-      if (onSearch) {
-        onSearch(data);
-      }
+      onSearch?.(data);
 
       if (data.length === 0) {
         setError('Nenhum resultado encontrado');
       }
     } catch (err) {
-      setError('Erro ao conectar com o servidor');
       console.error(err);
+      setError('Erro ao conectar com o servidor');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <header className="w-full bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex flex-col gap-4">
-          <h1 className="text-white text-3xl font-bold">Buscar Usuário</h1>
-          
-          <form onSubmit={handleSearch} className="w-full max-w-md">
-            <div className="flex gap-2">
+    <header className="w-full bg-[var(--jj-red)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col gap-6">
+          <div>
+            <h1 className="text-white text-3xl font-semibold">
+              People Directory
+            </h1>
+            <p className="text-white/80 text-sm mt-1">
+              Busque pessoas por nome ou identificador
+            </p>
+          </div>
+
+          <form onSubmit={handleSearch} className="w-full max-w-lg">
+            <div className="flex gap-3">
               <input
                 type="text"
                 value={searchTerm}
                 onChange={handleInputChange}
-                placeholder="Digite um nome ou ID..."
-                className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Digite um nome ou ID…"
                 disabled={isLoading}
+                className="
+                  flex-1 px-4 py-2.5 rounded-lg border border-gray-300
+                  bg-white text-black placeholder-gray-400
+                  text-sm
+                  focus:outline-none focus:ring-2 focus:ring-[var(--jj-red)]
+                  disabled:bg-gray-100
+                "
               />
+
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-6 py-2 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className="
+                  px-6 py-2.5 rounded-lg font-medium text-sm
+                  bg-white text-[var(--jj-red)]
+                  border border-white
+                  hover:bg-gray-100
+                  disabled:bg-gray-200 disabled:text-gray-500
+                  disabled:cursor-not-allowed
+                  transition-colors
+                "
               >
-                {isLoading ? 'Buscando...' : 'Buscar'}
+                {isLoading ? 'Buscando…' : 'Buscar'}
               </button>
             </div>
           </form>
 
           {error && (
-            <div className="text-white bg-red-500 bg-opacity-20 border border-red-400 rounded-lg px-4 py-2 max-w-md">
+            <div
+              className="
+                max-w-lg rounded-lg border border-white/40
+                bg-white/95 text-black text-sm
+                px-4 py-2
+              "
+            >
               {error}
             </div>
           )}
